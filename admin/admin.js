@@ -253,7 +253,7 @@ router.put('/cancel-order/:id', async (req, res) => {
       'UPDATE orders SET status = $1 WHERE id = $2',
       ['annulée', orderId]
     );
-    consi
+
 
     await client.end();
 
