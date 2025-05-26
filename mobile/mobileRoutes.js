@@ -44,6 +44,23 @@ router.get('/products', async (req, res) => {
   }
 });
 
+// Récupérer tous les produits disponibles
+router.get('/clients', async (req, res) => {
+  const client = new Client({ connectionString });
+  try {
+    await client.connect();
+    const result = await client.query('SELECT id,name,mobile,adresse,gps FROM clients');
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Database error');
+  } finally {
+    await client.end();
+  }
+});
+
+
+
 // Récupérer les modes de paiement
 router.get('/mode_paiments', async (req, res) => {
   const client = new Client({ connectionString });
@@ -68,10 +85,10 @@ router.post('/upload-image', upload.single('image'), (req, res) => {
 });
 
 // Ajouter une commande avec ses items
-// Ajouter une commande avec ses items
 router.post('/add_order', async (req, res) => {
   const {
     user_id,
+    client_id,
     client_name,
     client_mobile,
     client_adresse,
@@ -82,21 +99,39 @@ router.post('/add_order', async (req, res) => {
   } = req.body;
 
   const client = new Client({ connectionString });
+
   try {
     await client.connect();
     await client.query('BEGIN');
 
-    // 1. Insérer la commande
+    let finalClientId;
+
+    // ✅ Si client_id est bien un nombre valide (différent de null/undefined/0/"")
+    if (client_id && !isNaN(client_id)) {
+      finalClientId = client_id;
+    } else {
+      // ✅ Créer un nouveau client dans la table clients
+      const createClientQuery = `
+        INSERT INTO clients (name, mobile, adresse, gps)
+        VALUES ($1, $2, $3, $4)
+        RETURNING id;
+      `;
+      const createClientValues = [client_name, client_mobile, client_adresse, client_gps];
+      const newClient = await client.query(createClientQuery, createClientValues);
+      finalClientId = newClient.rows[0].id;
+    }
+
+    // ✅ Créer la commande
     const orderQuery = `
-      INSERT INTO orders (user_id, client_name, client_mobile, client_adresse, client_gps, date_order, total)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      INSERT INTO orders (user_id, client_id, date_order, total)
+      VALUES ($1, $2, $3, $4)
       RETURNING id;
     `;
-    const orderValues = [user_id, client_name, client_mobile, client_adresse, client_gps, date_order, total];
+    const orderValues = [user_id, finalClientId, date_order, total];
     const orderResult = await client.query(orderQuery, orderValues);
     const orderId = orderResult.rows[0].id;
 
-    // 2. Insérer les items + Mettre à jour le stock
+    // ✅ Insérer les items + Mettre à jour le stock
     const itemQuery = `
       INSERT INTO order_items (order_id, product_id, quantity, price, discount)
       VALUES ($1, $2, $3, $4, $5)
@@ -109,14 +144,10 @@ router.post('/add_order', async (req, res) => {
 
     for (const item of items) {
       const { product_id, quantity, price, discount } = item;
-
-      // Vérification possible ici si tu veux empêcher des stocks négatifs
-
       await client.query(itemQuery, [orderId, product_id, quantity, price, discount]);
       await client.query(updateStockQuery, [product_id, quantity]);
     }
 
-    // 3. Confirmer la transaction
     await client.query('COMMIT');
     res.status(201).json({ message: 'Commande ajoutée avec succès', order_id: orderId });
 
@@ -129,6 +160,7 @@ router.post('/add_order', async (req, res) => {
   }
 });
 
+
 // Récupérer les commandes d'un utilisateur
 router.get('/orders/:user_id', async (req, res) => {
   const userId = req.params.user_id;
@@ -136,7 +168,18 @@ router.get('/orders/:user_id', async (req, res) => {
 
   try {
     await client.connect();
-    const ordersResult = await client.query('SELECT * FROM orders WHERE user_id = $1 ORDER BY id DESC', [userId]);
+    const ordersResult = await client.query(`
+      SELECT
+        orders.*,
+        clients.name AS client_name,
+        clients.mobile AS client_mobile,
+        clients.adresse AS client_adresse,
+        clients.gps AS client_gps
+      FROM orders
+      JOIN clients ON orders.client_id = clients.id
+      WHERE orders.user_id = $1
+      ORDER BY orders.id DESC
+    `, [userId]);
     const orders = ordersResult.rows;
 
     for (const order of orders) {
@@ -167,7 +210,19 @@ router.get('/mes_livraisons/:user_id', async (req, res) => {
 
   try {
     await client.connect();
-    const ordersResult = await client.query('SELECT * FROM orders WHERE delivery_user_id = $1 ORDER BY id DESC', [userId]);
+    const ordersResult = await client.query(`
+        SELECT
+            o.*,
+            c.name AS client_name,
+            c.mobile AS client_mobile,
+            c.adresse AS client_adresse,
+            c.gps AS client_gps
+        FROM orders o
+        JOIN clients c ON o.client_id = c.id
+        WHERE o.delivery_user_id = $1
+        ORDER BY o.id DESC;
+    `, [userId]);
+
     const orders = ordersResult.rows;
 
     for (const order of orders) {

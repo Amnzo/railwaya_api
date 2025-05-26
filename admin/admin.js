@@ -33,46 +33,72 @@ const connectionString = 'postgresql://postgres:AGUxlTJrdeSrMFzvurAXpKkcjIPKwlMa
 // Exemple route admin simple
 router.get('/dashboard', async (req, res) => {
   const client = new Client({ connectionString });
+
   try {
     await client.connect();
 
-    const topProducts = await client.query(`
-      SELECT p.id, p.name, SUM(oi.quantity) AS total_sold
-      FROM order_items oi
-      JOIN products p ON oi.product_id = p.id
-      GROUP BY p.id, p.name
-      ORDER BY total_sold DESC
-      LIMIT 5;
-    `);
+    const now = new Date();
+    const currentMonth = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`;
+    const previousMonth = `${now.getFullYear()}-${(now.getMonth()).toString().padStart(2, '0')}`;
+    const currentYear = `${now.getFullYear()}`;
 
-    const topSellers = await client.query(`
-      SELECT u.id, u.name, COUNT(o.id) AS total_orders, SUM(o.total) AS total_sales
-      FROM users u
-      JOIN orders o ON u.id = o.user_id
-      GROUP BY u.id, u.name
-      ORDER BY total_sales DESC
-      LIMIT 5;
-    `);
-
-    const topOrders = await client.query(`
-      SELECT id, client_name, total, date_order
+    // 📌 1. Statistiques générales
+    const stats = await client.query(`
+      SELECT
+        SUM(CASE WHEN status = 'livrée' THEN credit_sur_commande ELSE 0 END) AS total_credit,
+        COUNT(*) FILTER (WHERE status = 'livrée') AS nombre_commandes,
+        SUM(CASE WHEN status = 'livrée' THEN total ELSE 0 END) AS chiffre
       FROM orders
-      ORDER BY total DESC
-      LIMIT 5;
+    `);
+
+    // 📌 2. Chiffre d'affaires par vendeur
+    const vendorsStats = await client.query(`
+      SELECT
+        u.id,
+        u.name,
+        COALESCE(SUM(CASE WHEN TO_CHAR(o.date_order, 'YYYY-MM') = $1 THEN o.total ELSE 0 END), 0) AS chiffre_mois_courant,
+        COALESCE(SUM(CASE WHEN TO_CHAR(o.date_order, 'YYYY-MM') = $2 THEN o.total ELSE 0 END), 0) AS chiffre_mois_precedent,
+        COALESCE(SUM(CASE WHEN TO_CHAR(o.date_order, 'YYYY') = $3 THEN o.total ELSE 0 END), 0) AS chiffre_annuel,
+        COALESCE(SUM(o.credit_sur_commande), 0) AS total_credits
+      FROM users u
+      LEFT JOIN orders o ON u.id = o.user_id AND o.status = 'livrée'
+      WHERE u.user_level = 'vendeur' and u.actif=true
+      GROUP BY u.id, u.name
+      ORDER BY chiffre_annuel DESC;
+    `, [currentMonth, previousMonth, currentYear]);
+
+
+
+    // 📌 3. Liste des crédits clients
+    const credits = await client.query(`
+      SELECT
+        o.total,
+        o.credit_sur_commande,
+        c.name AS nom_client,
+        c.adresse AS adresse_client,
+        (SELECT name FROM users WHERE users.id = o.user_id) AS vendeur,
+        (SELECT name FROM users WHERE users.id = o.delivery_user_id) AS livreur,
+        o.date_order,
+        o.cloture_date
+      FROM orders o
+      JOIN clients c ON c.id = o.client_id
+      WHERE o.credit_sur_commande > 0;
     `);
 
     res.json({
-      topProducts: topProducts.rows,
-      topSellers: topSellers.rows,
-      topOrders: topOrders.rows,
+      stats: stats.rows[0],
+      credits: credits.rows,
+      vendeurs: vendorsStats.rows
     });
+
   } catch (err) {
     console.error(err);
-    res.status(500).send('Database error');
+    res.status(500).send('Erreur serveur');
   } finally {
     await client.end();
   }
 });
+
 
 
 // Récupérer tous les produits disponibles
@@ -216,41 +242,61 @@ router.get('/users', async (req, res) => {
   }
 });
 
-
-router.put('/update-user/:id', async (req, res) => {
+router.put('/cancel-order/:id', async (req, res) => {
+  const orderId = req.params.id;
   const client = new Client({ connectionString });
 
-  const userId = req.params.id;
-  const { name, email, password, user_level, actif } = req.body;
-  console.log(req.body);
-
   try {
-    await client.connect();
+    await client.connect(); // OBLIGATOIRE avant toute requête
+
     const result = await client.query(
-      `UPDATE users
-       SET name = $1, email = $2, password=$3, user_level = $4, actif = $5
-       WHERE id = $6
-       RETURNING *`,
-      [name, email, password, user_level, actif, userId]
+      'UPDATE orders SET status = $1 WHERE id = $2',
+      ['annulée', orderId]
     );
+    consi
+
+    await client.end();
 
     if (result.rowCount === 0) {
-      return res.status(404).json({ message: 'Utilisateur non trouvé' });
+      return res.status(404).json({ message: 'Commande non trouvée.' });
     }
 
-    res.json({ message: 'Utilisateur mis à jour avec succès', user: result.rows[0] });
-  } catch (err) {
-    console.error(err);
-    res.status(500).send('Erreur lors de la mise à jour');
-  } finally {
-    await client.end();
+    res.json({ message: `Commande #${orderId} annulée avec succès.` });
+  } catch (error) {
+    console.error('Erreur serveur:', error);
+    res.status(500).json({ error: 'Erreur lors de l\'annulation de la commande.' });
   }
 });
 
 
 
 
+router.put('/cancel-order/:id', async (req, res) => {
+  const orderId = req.params.id;
+  const client = new Client({ connectionString });
 
+  try {
+
+
+
+    const [result] = await client.execute(
+      'UPDATE orders SET status = ? WHERE id = ?',
+      ['Annulée', orderId]
+    );
+
+    await client.end();
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: 'Commande non trouvée.' });
+    }
+
+    res.json({ message: `Commande #${orderId} annulée avec succès.` });
+
+  } catch (error) {
+    console.error('Erreur serveur:', error);
+    res.status(500).json({ error: 'Erreur lors de l\'annulation de la commande.' });
+  }
+});
 
 
 
@@ -259,12 +305,12 @@ router.put('/update-user/:id', async (req, res) => {
 router.get('/orders', async (req, res) => {
   const client = new Client({ connectionString });
   const query = `
-    SELECT
+   SELECT
       o.id,
-      o.client_name,
-      o.client_mobile,
-      o.client_adresse,
-      o.client_gps,
+      c.name as client_name ,
+      c.mobile client_mobile,
+      c.adresse client_adresse,
+      c.gps client_gps,
       o.total,
       o.status,
       o.created_at,
@@ -272,10 +318,10 @@ router.get('/orders', async (req, res) => {
       o.credit_sur_commande,
       u_creator.name AS creator_name,
       u_delivery.name AS delivery_name
-    FROM orders o
+    FROM orders o  JOIN clients c ON o.client_id = c.id
     JOIN users u_creator ON o.user_id = u_creator.id
     LEFT JOIN users u_delivery ON o.delivery_user_id = u_delivery.id
-    ORDER BY o.id DESC
+    ORDER BY o.id desc
   `;
 
   try {
@@ -461,6 +507,33 @@ router.get('/mode_paiments', async (req, res) => {
   }
 });
 
+// Récupérer tous les clients avec leur nombre de commandes livrées et chiffre d'affaires
+router.get('/clients', async (req, res) => {
+  const client = new Client({ connectionString });
+  try {
+    await client.connect();
+    const result = await client.query(`
+      SELECT
+        client_id,
+        c.name,
+        c.adresse,
+        c.mobile,
+        COUNT(*) AS nombre_commandes,
+        SUM(o.total) AS chiffre
+      FROM orders o
+      JOIN clients c ON o.client_id = c.id
+      WHERE o.status = 'livrée'
+      GROUP BY client_id, c.name, c.adresse, c.mobile
+      ORDER BY chiffre DESC
+    `);
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Database error');
+  } finally {
+    await client.end();
+  }
+});
 
 // Ajoute tes routes admin ici
 
