@@ -553,7 +553,7 @@ router.post('/add-bulk-orders', async (req, res) => {
 
       await client.query(`
         INSERT INTO orders (user_id, client_id, total, credit_sur_commande, status, date_order)
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        VALUES ($1, $2, $3, $4, $5, $6)
       `, [userId, clientId, total, creditSurCommande, status, dateOrder]);
     }
 
