@@ -535,6 +535,38 @@ router.get('/clients', async (req, res) => {
   }
 });
 
+router.post('/add-bulk-orders', async (req, res) => {
+  const client = new Client({ connectionString });
+
+  try {
+    await client.connect();
+
+    // 🔁 Générer 100 commandes
+    for (let i = 0; i < 100; i++) {
+      const userId = 2; // À adapter à tes IDs utilisateurs
+      const clientId = 12; // À adapter à tes IDs clients
+      const total = 102.2);
+      const creditSurCommande = 0;
+      const status = ['livrée', 'en attente', 'annulée'][Math.floor(Math.random() * 3)];
+      const dateOrder = new Date(Date.now() - Math.random() * 10000000000); // Date aléatoire récente
+      const livraisonUserId = Math.floor(Math.random() * 10) + 1;
+
+      await client.query(`
+        INSERT INTO orders (user_id, client_id, total, credit_sur_commande, status, date_order, delivery_user_id)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `, [userId, clientId, total, creditSurCommande, status, dateOrder, livraisonUserId]);
+    }
+
+    res.status(201).json({ message: '100 commandes ajoutées avec succès' });
+  } catch (error) {
+    console.error('Erreur lors de l\'ajout des commandes :', error);
+    res.status(500).json({ error: 'Erreur serveur' });
+  } finally {
+    await client.end();
+  }
+});
+
+
 // Ajoute tes routes admin ici
 
 module.exports = router;
