@@ -549,12 +549,12 @@ router.post('/add-bulk-orders', async (req, res) => {
       const creditSurCommande = 0;
       const status = ['livrée', 'en attente', 'annulée'][Math.floor(Math.random() * 3)];
       const dateOrder = new Date(Date.now() - Math.random() * 10000000000); // Date aléatoire récente
-      const livraisonUserId = Math.floor(Math.random() * 10) + 1;
+
 
       await client.query(`
-        INSERT INTO orders (user_id, client_id, total, credit_sur_commande, status, date_order, delivery_user_id)
+        INSERT INTO orders (user_id, client_id, total, credit_sur_commande, status, date_order)
         VALUES ($1, $2, $3, $4, $5, $6, $7)
-      `, [userId, clientId, total, creditSurCommande, status, dateOrder, livraisonUserId]);
+      `, [userId, clientId, total, creditSurCommande, status, dateOrder]);
     }
 
     res.status(201).json({ message: '100 commandes ajoutées avec succès' });
