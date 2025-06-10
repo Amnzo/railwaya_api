@@ -268,6 +268,67 @@ router.put('/cancel-order/:id', async (req, res) => {
   }
 });
 
+router.put('/reglement-credit/:id', async (req, res) => {
+  const orderId = req.params.id;
+  const { montant } = req.body;
+
+  if (!montant || isNaN(montant)) {
+    return res.status(400).json({ error: 'Montant invalide ou manquant.' });
+  }
+
+  const client = new Client({ connectionString });
+
+  try {
+    await client.connect();
+
+    // Commencer une transaction
+    await client.query('BEGIN');
+
+    // Mettre à jour le crédit
+    const updateResult = await client.query(
+      `UPDATE orders
+       SET credit_sur_commande = credit_sur_commande - $1
+       WHERE id = $2
+       RETURNING *`,
+      [montant, orderId]
+    );
+
+    if (updateResult.rowCount === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Commande non trouvée.' });
+    }
+
+    // Récupérer le mode_paiement_id pour "Régle Credit"
+    const modeResult = await client.query(
+      `SELECT id FROM modes_paiement WHERE mode = 'Régle Credit' LIMIT 1`
+    );
+
+    if (modeResult.rowCount === 0) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'Mode de paiement "Régle Credit" non trouvé.' });
+    }
+
+    const modePaiementId = modeResult.rows[0].id;
+
+    // Insérer le paiement
+    await client.query(
+      `INSERT INTO paiement (order_id, mode_paiement_id, montant)
+       VALUES ($1, $2, $3)`,
+      [orderId, modePaiementId, montant]
+    );
+
+    // Commit transaction
+    await client.query('COMMIT');
+
+    res.json({ message: `Paiement de ${montant}€ appliqué à la commande #${orderId}.` });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Erreur serveur:', err);
+    res.status(500).json({ error: 'Erreur lors du traitement du paiement.' });
+  } finally {
+    await client.end();
+  }
+});
 
 
 
