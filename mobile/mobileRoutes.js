@@ -66,7 +66,7 @@ router.get('/mode_paiments', async (req, res) => {
   const client = new Client({ connectionString });
   try {
     await client.connect();
-    const result = await client.query('SELECT * FROM modes_paiement');
+    const result = await client.query( `SELECT * FROM modes_paiement WHERE mode != 'Régle Credit'`);
     res.json(result.rows);
   } catch (err) {
     console.error(err);
