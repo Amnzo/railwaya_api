@@ -482,28 +482,28 @@ router.get('/order-details/:id', async (req, res) => {
 
 
 
-router.get('/client-orders-with-credit/:id_client', async (req, res) => {
-  const clientId = req.params.id_client;
+// Exemple : /orders-with-credit/18
+router.get('/orders-with-credit/:clientId', async (req, res) => {
+  const clientId = req.params.clientId;
+  const client = new Client({ connectionString });
 
   try {
-    const connection = await mysql.createConnection(dbConfig);
+    await client.connect();
 
-    const [commandes] = await connection.execute(
-      `SELECT *
-       FROM orders o
-       WHERE o.client_id = ? AND o.credit_sur_commande > 0`,
+    const result = await client.query(
+      `SELECT * FROM orders WHERE client_id = $1 AND credit_sur_commande > 0`,
       [clientId]
     );
 
-    await connection.end();
-
-    res.json({ commandes });
-
-  } catch (error) {
-    console.error('Erreur serveur :', error);
-    res.status(500).json({ error: 'Erreur lors de la récupération des commandes avec crédit' });
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Erreur PostgreSQL :', err);
+    res.status(500).send('Erreur base de données');
+  } finally {
+    await client.end();
   }
 });
+
 
 
 // Assigner une livraison à une commande
