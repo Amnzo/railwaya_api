@@ -481,6 +481,31 @@ router.get('/order-details/:id', async (req, res) => {
 });
 
 
+
+router.get('/client-orders-with-credit/:id_client', async (req, res) => {
+  const clientId = req.params.id_client;
+
+  try {
+    const connection = await mysql.createConnection(dbConfig);
+
+    const [commandes] = await connection.execute(
+      `SELECT *
+       FROM orders o
+       WHERE o.client_id = ? AND o.credit_sur_commande > 0`,
+      [clientId]
+    );
+
+    await connection.end();
+
+    res.json({ commandes });
+
+  } catch (error) {
+    console.error('Erreur serveur :', error);
+    res.status(500).json({ error: 'Erreur lors de la récupération des commandes avec crédit' });
+  }
+});
+
+
 // Assigner une livraison à une commande
 router.post('/assign-delivery', async (req, res) => {
   const { order_id, delivery_id } = req.body;
