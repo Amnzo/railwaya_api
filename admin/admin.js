@@ -390,7 +390,7 @@ router.get('/orders', async (req, res) => {
   try {
     await client.connect();
 
-    // 1. Récupérer toutes les commandes...
+    // 1. Récupérer toutes les commandes......
     const ordersResult = await client.query(query);
     const orders = ordersResult.rows;
 
