@@ -410,7 +410,7 @@ router.get('/orders', async (req, res) => {
       // Paiements de la commande
       const paiementsResult = await client.query(`
         SELECT
-          pa.id AS paiement_id, pa.montant, pa.date_paiement,
+          pa.id AS paiement_id, pa.montant, pa.date_paiement,pa.commentaire,
           mp.mode AS mode_paiement
         FROM paiement pa
         JOIN modes_paiement mp ON pa.mode_paiement_id = mp.id
