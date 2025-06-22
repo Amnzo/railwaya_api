@@ -362,7 +362,7 @@ router.put('/cancel-order/:id', async (req, res) => {
 
 
 
-// Récupérer toutes les commandes avec items et paiements
+// Récupérer toutes les commandes avec items et paiements .....
 router.get('/orders', async (req, res) => {
   const client = new Client({ connectionString });
   const query = `
