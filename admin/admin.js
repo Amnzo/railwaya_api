@@ -368,6 +368,7 @@ router.get('/orders', async (req, res) => {
   const query = `
    SELECT
       o.id,
+      o.client_id,
       c.name as client_name ,
       c.mobile client_mobile,
       c.adresse client_adresse,
