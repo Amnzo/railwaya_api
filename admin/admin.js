@@ -270,7 +270,7 @@ router.put('/cancel-order/:id', async (req, res) => {
 
 router.put('/reglement-credit/:id', async (req, res) => {
   const orderId = req.params.id;
-  const { montant } = req.body;
+  const { montant, commentaire } = req.body;
 
   if (!montant || isNaN(montant)) {
     return res.status(400).json({ error: 'Montant invalide ou manquant.' });
@@ -312,9 +312,9 @@ router.put('/reglement-credit/:id', async (req, res) => {
 
     // Insérer le paiement
     await client.query(
-      `INSERT INTO paiement (order_id, mode_paiement_id, montant)
+      `INSERT INTO paiement (order_id, mode_paiement_id, montant , commentaire)
        VALUES ($1, $2, $3)`,
-      [orderId, modePaiementId, montant]
+      [orderId, modePaiementId, montant, commentaire || null]
     );
 
     // Commit transaction
