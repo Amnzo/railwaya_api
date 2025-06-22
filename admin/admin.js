@@ -311,11 +311,12 @@ router.put('/reglement-credit/:id', async (req, res) => {
     const modePaiementId = modeResult.rows[0].id;
 
     // Insérer le paiement
-    await client.query(
-      `INSERT INTO paiement (order_id, mode_paiement_id, montant , commentaire)
-       VALUES ($1, $2, $3)`,
-      [orderId, modePaiementId, montant, commentaire || null]
-    );
+   await client.query(
+  `INSERT INTO paiement (order_id, mode_paiement_id, montant , commentaire)
+   VALUES ($1, $2, $3, $4)`,
+  [orderId, modePaiementId, montant, commentaire || null]
+);
+
 
     // Commit transaction
     await client.query('COMMIT');
