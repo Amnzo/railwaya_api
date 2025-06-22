@@ -380,6 +380,7 @@ router.get('/orders', async (req, res) => {
       o.cloture_date,
       o.credit_sur_commande,
       u_creator.name AS creator_name,
+      u_creator.telephone AS vendeur_phone,
       u_delivery.name AS delivery_name
     FROM orders o  JOIN clients c ON o.client_id = c.id
     JOIN users u_creator ON o.user_id = u_creator.id
