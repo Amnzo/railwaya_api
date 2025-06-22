@@ -491,7 +491,18 @@ router.get('/orders-with-credit/:clientId', async (req, res) => {
     await client.connect();
 
     const result = await client.query(
-      `SELECT * FROM orders WHERE client_id = $1 AND credit_sur_commande > 0`,
+      `SELECT
+         o.created_at,
+         o.cloture_date,
+         o.total,
+         o.credit_sur_commande,
+         u1.name AS vendeur,
+         u2.name AS livreur
+       FROM orders o
+       LEFT JOIN users u1 ON o.user_id = u1.id
+       LEFT JOIN users u2 ON o.delivery_user_id = u2.id
+       WHERE o.client_id = $1
+         AND o.credit_sur_commande > 0`,
       [clientId]
     );
 
@@ -503,6 +514,7 @@ router.get('/orders-with-credit/:clientId', async (req, res) => {
     await client.end();
   }
 });
+
 
 
 
