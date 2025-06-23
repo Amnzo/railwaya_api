@@ -559,7 +559,7 @@ router.post('/assign-delivery', async (req, res) => {
 
 
 router.post('/add-user', async (req, res) => {
-  const { nom, email, password, user_level } = req.body;
+  const { nom, email, password, telephone, user_level } = req.body;
 
   if (!nom || !email || !password || !user_level) {
     return res.status(400).json({ error: 'Tous les champs sont requis (nom, email, mot de passe, niveau utilisateur)' });
@@ -571,11 +571,11 @@ router.post('/add-user', async (req, res) => {
     await client.connect();
 
     const insertQuery = `
-      INSERT INTO users (name, email, password, user_level)
-      VALUES ($1, $2, $3, $4)
+      INSERT INTO users (name, email, password, telephone , user_level)
+      VALUES ($1, $2, $3, $4, $5)
       RETURNING *`;
 
-    const values = [nom, email, password, user_level];
+    const values = [nom, email, password, telephone, user_level];
     const result = await client.query(insertQuery, values);
 
     res.status(201).json({ message: 'Utilisateur ajouté avec succès', user: result.rows[0] });
