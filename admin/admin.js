@@ -701,6 +701,38 @@ router.post('/add-bulk-orders', async (req, res) => {
 });
 
 
+
+router.post('/add-category', async (req, res) => {
+  const { name, actif } = req.body;
+
+  if (!name || typeof actif !== 'boolean') {
+    return res.status(400).json({ error: 'Les champs name (string) et actif (boolean) sont requis' });
+  }
+
+  const client = new Client({ connectionString });
+
+  try {
+    await client.connect();
+
+    const insertQuery = `
+      INSERT INTO categories (name, actif)
+      VALUES ($1, $2)
+      RETURNING *`;
+
+    const values = [name, actif];
+    const result = await client.query(insertQuery, values);
+
+    res.status(201).json({ message: 'Catégorie ajoutée avec succès', category: result.rows[0] });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Erreur lors de l'ajout de la catégorie");
+  } finally {
+    await client.end();
+  }
+});
+
+
+
 // Ajoute tes routes admin ici
 
 module.exports = router;
