@@ -45,7 +45,7 @@ router.get('/products', async (req, res) => {
 });
 
 
-// Récupérer tous les produits disponibles
+// Récupérer tous les produits disponibles ....
 router.get('/categories', async (req, res) => {
   const client = new Client({ connectionString });
   try {
