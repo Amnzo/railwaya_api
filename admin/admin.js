@@ -4,6 +4,14 @@ const path = require('path');
 const { Client } = require('pg');
 const fs = require('fs');
 
+const cloudinary = require('cloudinary').v2;
+cloudinary.config({
+  cloud_name: 'dqtjtthll',
+  api_key: '488418363643474',
+  api_secret: 'CLOUDINARY_URL=cloudinary://488418363643474:f27tEAYVC9gAww8OzgzLbBHjWnw@dqtjtthll'
+});
+
+
 const router = express.Router();
 
 // Config multer pour upload images
@@ -148,10 +156,21 @@ router.get('/get_product/:id', async (req, res) => {
 // Route pour ajouter un produit avec image
 router.post('/add-product', upload.single('image'), async (req, res) => {
   const { name, price, price2, available, qtt_stock } = req.body;
-  const image = req.file ? req.file.filename : null;
+  let imageUrl = null;
 
-  if (!name || !price || !price2 || !available || !qtt_stock || !image) {
-    return res.status(400).json({ error: 'Tous les champs sont requis (nom, prix, prix2, disponible, stock, image)' });
+  if (!name || !price || !price2 || !available || !qtt_stock) {
+    return res.status(400).json({ error: 'Tous les champs sauf image sont requis' });
+  }
+
+  if (req.file) {
+    try {
+      const result = await cloudinary.uploader.upload(req.file.path, {
+        folder: 'produits'
+      });
+      imageUrl = result.secure_url;
+    } catch (err) {
+      return res.status(500).json({ error: "Erreur lors de l'upload vers Cloudinary" });
+    }
   }
 
   const client = new Client({ connectionString });
@@ -162,17 +181,18 @@ router.post('/add-product', upload.single('image'), async (req, res) => {
       INSERT INTO products (name, price, price2, imageurl, avalaible, qtt_stock)
       VALUES ($1, $2, $3, $4, $5, $6)
       RETURNING *`;
-    const values = [name, price, price2, image, available, qtt_stock];
+    const values = [name, price, price2, imageUrl, available, qtt_stock];
     const result = await client.query(insertQuery, values);
 
     res.status(201).json({ message: 'Produit ajouté avec succès', product: result.rows[0] });
   } catch (err) {
     console.error(err);
-    res.status(500).send('Erreur lors de l\'ajout du produit');
+    res.status(500).send("Erreur lors de l'ajout du produit");
   } finally {
     await client.end();
   }
 });
+
 
 
 
