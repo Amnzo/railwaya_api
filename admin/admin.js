@@ -200,12 +200,23 @@ router.post('/add-product', upload.single('image'), async (req, res) => {
 router.put('/update-product/:id', upload.single('image'), async (req, res) => {
   const { name, price, price2, available, qtt_stock } = req.body;
   const availableBool = available === 'true' || available === true;
-  const image = req.file ? req.file.filename : null;
   const productId = req.params.id;
-  console.log(req.body);
 
   if (!name || !price || !price2 || typeof available === 'undefined' || available === null || !qtt_stock) {
     return res.status(400).json({ error: 'Tous les champs sauf l\'image sont requis' });
+  }
+
+  let imageUrl = null;
+
+  if (req.file) {
+    try {
+      const result = await cloudinary.uploader.upload(req.file.path, {
+        folder: 'produits'
+      });
+      imageUrl = result.secure_url;
+    } catch (err) {
+      return res.status(500).json({ error: "Erreur lors de l'upload vers Cloudinary" });
+    }
   }
 
   const client = new Client({ connectionString });
@@ -216,13 +227,13 @@ router.put('/update-product/:id', upload.single('image'), async (req, res) => {
     let updateQuery;
     let values;
 
-    if (image) {
+    if (imageUrl) {
       updateQuery = `
         UPDATE products
         SET name = $1, price = $2, price2 = $3, imageurl = $4, avalaible = $5, qtt_stock = $6
         WHERE id = $7
         RETURNING *`;
-      values = [name, price, price2, image, availableBool, qtt_stock, productId];
+      values = [name, price, price2, imageUrl, availableBool, qtt_stock, productId];
     } else {
       updateQuery = `
         UPDATE products
@@ -247,6 +258,7 @@ router.put('/update-product/:id', upload.single('image'), async (req, res) => {
     await client.end();
   }
 });
+
 
 
 router.get('/users', async (req, res) => {
