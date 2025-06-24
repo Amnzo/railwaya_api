@@ -50,7 +50,7 @@ router.get('/categories', async (req, res) => {
   const client = new Client({ connectionString });
   try {
     await client.connect();
-    const result = await client.query('SELECT * FROM categories where actif=True order by id desc');
+    const result = await client.query('SELECT * FROM categories where actif=True order by id asc');
     res.json(result.rows);
   } catch (err) {
     console.error(err);
