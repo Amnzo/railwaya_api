@@ -156,7 +156,7 @@ router.get('/get_product/:id', async (req, res) => {
 // Route pour ajouter un produit avec image
 // Route pour ajouter un produit avec image
 router.post('/add-product', upload.single('image'), async (req, res) => {
-  const { name, price, price2, available, qtt_stock } = req.body;
+  const { name, price, price2, available, qtt_stock , category_id } = req.body;
   let imageUrl = null;
 
   if (!name || !price || !price2 || !available || !qtt_stock) {
@@ -179,10 +179,10 @@ router.post('/add-product', upload.single('image'), async (req, res) => {
   try {
     await client.connect();
     const insertQuery = `
-      INSERT INTO products (name, price, price2, imageurl, avalaible, qtt_stock)
-      VALUES ($1, $2, $3, $4, $5, $6)
+      INSERT INTO products (name, price, price2, imageurl, avalaible, qtt_stock , category_id)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING *`;
-    const values = [name, price, price2, imageUrl, available, qtt_stock];
+    const values = [name, price, price2, imageUrl, available, qtt_stock , category_id];
     const result = await client.query(insertQuery, values);
 
     res.status(201).json({ message: 'Produit ajouté avec succès', product: result.rows[0] });
