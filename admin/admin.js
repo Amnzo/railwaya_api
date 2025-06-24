@@ -8,8 +8,9 @@ const cloudinary = require('cloudinary').v2;
 cloudinary.config({
   cloud_name: 'dqtjtthll',
   api_key: '488418363643474',
-  api_secret: 'CLOUDINARY_URL=cloudinary://488418363643474:f27tEAYVC9gAww8OzgzLbBHjWnw@dqtjtthll'
+  api_secret: 'f27tEAYVC9gAww8OzgzLbBHjWnw'
 });
+
 
 
 const router = express.Router();
