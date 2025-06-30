@@ -71,7 +71,7 @@ router.get('/dashboard', async (req, res) => {
         COALESCE(SUM(o.credit_sur_commande), 0) AS total_credits
       FROM users u
       LEFT JOIN orders o ON u.id = o.user_id AND o.status = 'livrée'
-      WHERE u.user_level = 'vendeur' and u.actif=true
+      WHERE u.user_level IN ('vendeur', 'gros') and u.actif=true
       GROUP BY u.id, u.name
       ORDER BY chiffre_annuel DESC;
     `, [currentMonth, previousMonth, currentYear]);
