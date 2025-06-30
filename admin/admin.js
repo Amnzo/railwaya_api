@@ -275,6 +275,43 @@ router.get('/users', async (req, res) => {
   }
 });
 
+// Route PUT pour mettre à jour un utilisateur
+router.put('/admin/update-user/:id', async (req, res) => {
+  const userId = req.params.id;
+  const { name, email, password, user_level, actif } = req.body;
+
+  console.log(`ID à mettre à jour: ${userId}`);
+  console.log('Données reçues:', req.body);
+
+  const client = new Client({ connectionString });
+
+  try {
+    await client.connect();
+    const result = await client.query(
+      `UPDATE users
+       SET name = $1,
+           email = $2,
+           password = $3,
+           user_level = $4,
+           actif = $5
+       WHERE id = $6
+       RETURNING *`,
+      [name, email, password, user_level, actif, userId]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).send('Utilisateur non trouvé');
+    }
+
+    res.json({ message: 'Utilisateur mis à jour', user: result.rows[0] });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Erreur serveur');
+  } finally {
+    await client.end();
+  }
+});
+
 router.put('/cancel-order/:id', async (req, res) => {
   const orderId = req.params.id;
   const client = new Client({ connectionString });
