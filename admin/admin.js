@@ -275,8 +275,8 @@ router.get('/users', async (req, res) => {
   }
 });
 
-// Route PUT pour mettre à jour un utilisateur
-router.put('/admin/update-user/:id', async (req, res) => {
+// Route PUT pour mettre à jour un utilisateur....
+router.put('/update-user/:id', async (req, res) => {
   const userId = req.params.id;
   const { name, email, password, user_level, actif } = req.body;
 
