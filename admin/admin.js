@@ -655,7 +655,7 @@ router.put('/edit_order/:order_id', async (req, res) => {
       const { product_id, quantity, price } = item;
 
       if (!product_id || !quantity || !price) {
-        throw new Error('Chaque item doit contenir product_id, quantity et price');
+        throw new Error('Chaque item doit contenir product_id, quantity et price .....');
       }
 
       await client.query(insertQuery, [orderId, product_id, quantity, price]);
@@ -663,7 +663,7 @@ router.put('/edit_order/:order_id', async (req, res) => {
 
     await client.query('COMMIT');
 
-    res.status(200).json({ message: 'Items de la commande mis à jour avec succès' });
+    res.status(200).json({ message: 'Items de la commande mis à jour avec succès....' });
   } catch (error) {
     await client.query('ROLLBACK');
     console.error('Erreur lors de la mise à jour des items de commande :', error);
