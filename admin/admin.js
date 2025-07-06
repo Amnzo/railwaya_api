@@ -629,50 +629,49 @@ router.post('/assign-delivery', async (req, res) => {
 
 
 router.put('/edit_order/:order_id', async (req, res) => {
-  const {
-    user_id,
-    client_id,
-    client_name,
-    client_mobile,
-    client_adresse,
-    client_gps,
-    date_order,
-    items,
-    total
-  } = req.body;
-
+  const { items } = req.body;
   const orderId = req.params.order_id;
 
-  console.log('Paramètres de l\'endpoint edit_order:');
-  console.log('order_id:', orderId);
-  console.log('user_id:', user_id);
-  console.log('client_id:', client_id);
-  console.log('client_name:', client_name);
-  console.log('client_mobile:', client_mobile);
-  console.log('client_adresse:', client_adresse);
-  console.log('client_gps:', client_gps);
-  console.log('date_order:', date_order);
-  console.log('items:', items);
-  console.log('total:', total);
+  if (!items || !Array.isArray(items) || items.length === 0) {
+    return res.status(400).json({ message: 'Liste des items invalide ou vide' });
+  }
 
-  // Réponse de test
-  res.status(200).json({
-    message: 'Reçu les paramètres avec succès',
-    received_data: {
-      order_id: orderId,
-      user_id,
-      client_id,
-      client_name,
-      client_mobile,
-      client_adresse,
-      client_gps,
-      date_order,
-      items,
-      total
+  const client = new Client({ connectionString });
+
+  try {
+    await client.connect();
+    await client.query('BEGIN');
+
+    // Supprimer les anciens items
+    await client.query('DELETE FROM order_items WHERE order_id = $1', [orderId]);
+
+    // Insérer les nouveaux items
+    const insertQuery = `
+      INSERT INTO order_items (order_id, product_id, quantity, price)
+      VALUES ($1, $2, $3, $4)
+    `;
+
+    for (const item of items) {
+      const { product_id, quantity, price } = item;
+
+      if (!product_id || !quantity || !price) {
+        throw new Error('Chaque item doit contenir product_id, quantity et price');
+      }
+
+      await client.query(insertQuery, [orderId, product_id, quantity, price]);
     }
-  });
-});
 
+    await client.query('COMMIT');
+
+    res.status(200).json({ message: 'Items de la commande mis à jour avec succès' });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Erreur lors de la mise à jour des items de commande :', error);
+    res.status(500).json({ message: 'Erreur serveur' });
+  } finally {
+    await client.end();
+  }
+});
 
 
 router.post('/add-user', async (req, res) => {
