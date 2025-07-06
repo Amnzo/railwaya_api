@@ -631,6 +631,7 @@ router.post('/assign-delivery', async (req, res) => {
 router.put('/edit_order/:order_id', async (req, res) => {
   const { items } = req.body;
   const orderId = req.params.order_id;
+  const total = req.params.total;
 
   if (!items || !Array.isArray(items) || items.length === 0) {
     return res.status(400).json({ message: 'Liste des items invalide ou vide' });
@@ -642,6 +643,8 @@ router.put('/edit_order/:order_id', async (req, res) => {
     await client.connect();
     await client.query('BEGIN');
 
+        // Supprimer les anciens items
+   await client.query('UPDATE orders SET total = $1 WHERE id = $2', [total, orderId]);
     // Supprimer les anciens items
     await client.query('DELETE FROM order_items WHERE order_id = $1', [orderId]);
 
