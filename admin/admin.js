@@ -647,18 +647,18 @@ router.put('/edit_order/:order_id', async (req, res) => {
 
     // Insérer les nouveaux items
     const insertQuery = `
-      INSERT INTO order_items (order_id, product_id, quantity, price)
-      VALUES ($1, $2, $3, $4)
+      INSERT INTO order_items (order_id, product_id, quantity, price,discount)
+      VALUES ($1, $2, $3, $4, $5)
     `;
 
     for (const item of items) {
-      const { product_id, quantity, price } = item;
+      const { product_id, quantity, price, discount } = item;
 
       if (!product_id || !quantity || !price) {
         throw new Error('Chaque item doit contenir product_id, quantity et price .....');
       }
 
-      await client.query(insertQuery, [orderId, product_id, quantity, price]);
+      await client.query(insertQuery, [orderId, product_id, quantity, price, discount]);
     }
 
     await client.query('COMMIT');
