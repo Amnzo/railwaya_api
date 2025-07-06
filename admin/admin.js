@@ -628,6 +628,53 @@ router.post('/assign-delivery', async (req, res) => {
 
 
 
+router.put('/edit_order/:order_id', async (req, res) => {
+  const {
+    user_id,
+    client_id,
+    client_name,
+    client_mobile,
+    client_adresse,
+    client_gps,
+    date_order,
+    items,
+    total
+  } = req.body;
+
+  const orderId = req.params.order_id;
+
+  console.log('Paramètres de l\'endpoint edit_order:');
+  console.log('order_id:', orderId);
+  console.log('user_id:', user_id);
+  console.log('client_id:', client_id);
+  console.log('client_name:', client_name);
+  console.log('client_mobile:', client_mobile);
+  console.log('client_adresse:', client_adresse);
+  console.log('client_gps:', client_gps);
+  console.log('date_order:', date_order);
+  console.log('items:', items);
+  console.log('total:', total);
+
+  // Réponse de test
+  res.status(200).json({
+    message: 'Reçu les paramètres avec succès',
+    received_data: {
+      order_id: orderId,
+      user_id,
+      client_id,
+      client_name,
+      client_mobile,
+      client_adresse,
+      client_gps,
+      date_order,
+      items,
+      total
+    }
+  });
+});
+
+
+
 router.post('/add-user', async (req, res) => {
   const { nom, email, password, telephone, user_level } = req.body;
 
