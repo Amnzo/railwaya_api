@@ -629,9 +629,9 @@ router.post('/assign-delivery', async (req, res) => {
 
 
 router.put('/edit_order/:order_id', async (req, res) => {
-  const { items } = req.body;
+  const { items, total } = req.body;
   const orderId = req.params.order_id;
-  const total = req.params.total;
+  //const total = req.params.total;
 
   if (!items || !Array.isArray(items) || items.length === 0) {
     return res.status(400).json({ message: 'Liste des items invalide ou vide' });
