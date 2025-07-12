@@ -30,19 +30,7 @@ const connectionString = 'postgresql://postgres:AGUxlTJrdeSrMFzvurAXpKkcjIPKwlMa
 // Routes mobiles
 
 // Récupérer tous les produits disponibles
-router.get('/products', async (req, res) => {
-  const client = new Client({ connectionString });
-  try {
-    await client.connect();
-    const result = await client.query('SELECT * FROM products order by id desc');
-    res.json(result.rows);
-  } catch (err) {
-    console.error(err);
-    res.status(500).send('Database error');
-  } finally {
-    await client.end();
-  }
-});
+
 
 
 // Récupérer tous les produits disponibles ....
